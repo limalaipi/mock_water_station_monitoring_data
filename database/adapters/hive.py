@@ -33,6 +33,25 @@ _TXN_SESSION_PROPS = [
     "SET hive.exec.dynamic.partition.mode=nonstrict",
 ]
 
+# Performance session properties — cut per-query overhead on slow clusters.
+# Each is applied best-effort (try/except): a cluster that rejects one SET
+# must not break the whole connection, so failures are logged and skipped.
+#   - vectorized execution: process rows in batches, not one-by-one
+#   - CBO + stats: better plans, fewer/leaner MR-Tez stages
+#   - parallel: run independent stages concurrently
+#   - fetch.task.conversion=more: answer simple SELECT/LIMIT without a job
+#   - tez container reuse: avoid re-spawning containers per stage
+_PERF_SESSION_PROPS = [
+    "SET hive.vectorized.execution.enabled=true",
+    "SET hive.vectorized.execution.reduce.enabled=true",
+    "SET hive.cbo.enable=true",
+    "SET hive.compute.query.using.stats=true",
+    "SET hive.exec.parallel=true",
+    "SET hive.fetch.task.conversion=more",
+    "SET hive.exec.dynamic.partition=true",
+    "SET tez.am.container.reuse.enabled=true",
+]
+
 
 class HiveAdapter(BaseAdapter):
 
@@ -69,12 +88,24 @@ class HiveAdapter(BaseAdapter):
         # --- Optional execution-engine override ---
         # Hive-on-MapReduce (mr) is very slow: every query stage spawns a
         # separate MR job (~15-20s startup each). On CDH set this to 'spark'
-        # for a large speedup. Leave unset to keep the cluster default.
+        # (or 'tez') for a large speedup. Leave unset to keep the cluster default.
         #   export HIVE_EXECUTION_ENGINE=spark   (or set execution_engine in config)
         engine = self.config.get("execution_engine") or os.getenv("HIVE_EXECUTION_ENGINE")
         if engine:
             self.cur.execute(f"SET hive.execution.engine={engine}")
             print(f"[hive] hive.execution.engine set to '{engine}'")
+
+        # --- Performance tuning (best-effort) ---
+        # Skip with HIVE_SKIP_PERF_TUNING=1 if a locked-down cluster rejects SETs.
+        if os.getenv("HIVE_SKIP_PERF_TUNING") != "1":
+            applied = 0
+            for prop in _PERF_SESSION_PROPS:
+                try:
+                    self.cur.execute(prop)
+                    applied += 1
+                except Exception as e:
+                    print(f"[hive] perf prop skipped ({prop}): {e}")
+            print(f"[hive] applied {applied}/{len(_PERF_SESSION_PROPS)} perf session properties")
 
         return self
 
@@ -125,6 +156,16 @@ class HiveAdapter(BaseAdapter):
             return len(rows) > 0
         except Exception:
             return False
+
+    # ------------------------------------------------------------------
+    # Truncate (override — DELETE on ACID spawns an MR/Tez job per run and
+    # is very slow; TRUNCATE drops data files directly and is near-instant)
+    # ------------------------------------------------------------------
+
+    def truncate_table(self, schema: str, table: str):
+        """Fast reset: TRUNCATE drops the data without a per-row delete job."""
+        self.cur.execute(f"TRUNCATE TABLE `{schema}`.`{table}`")
+        print(f"[hive] Truncated `{schema}`.`{table}`")
 
     # ------------------------------------------------------------------
     # DDL execution (override — set Hive session properties first)
