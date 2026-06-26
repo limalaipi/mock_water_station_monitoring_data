@@ -20,9 +20,6 @@ venv/
 # --- Runtime pipeline state (keep folder, ignore contents) ---
 state/*.json
 
-# --- JDBC drivers (large, redistributed separately) ---
-drivers/*.jar
-
 # --- OS / editor cruft ---
 .DS_Store
 Thumbs.db
