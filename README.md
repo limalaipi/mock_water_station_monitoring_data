@@ -61,7 +61,8 @@ water_station_monitoring/
 │
 ├── runners/
 │   ├── water_station.py            # Entry point: water_station table
-│   └── water_station_quality.py    # Entry point: water_station_monitor table
+│   ├── water_station_quality.py    # Entry point: water_station_monitor table
+│   └── water_station_both.py       # Entry point: both tables, ONE connection (Hive)
 │
 ├── tests/
 │   ├── conftest.py                 # Shared pytest fixtures
@@ -167,6 +168,21 @@ The framework will:
 
 ## Detailed Usage
 
+> **Windows / PowerShell:** `run.sh` is a bash script — running `./run.sh ...`
+> directly in PowerShell fails (`%1 is not a valid Win32 application` /
+> `Permission denied`). Use one of:
+> - `bash run.sh run-station oracle` (needs Git Bash), or
+> - call the runner directly: `uv run python -m runners.water_station --db oracle`
+>
+> The command-to-Python mapping:
+> | run.sh command | Equivalent Python |
+> |---|---|
+> | `run-station <db>` | `uv run python -m runners.water_station --db <db>` |
+> | `run-monitor <db>` | `uv run python -m runners.water_station_quality --db <db>` |
+> | `run-both <db>` | `uv run python -m runners.water_station_both --db <db>` |
+> | `reset-station <db>` | `uv run python -m runners.water_station --db <db> --reset` |
+> | `reset-both <db>` | `uv run python -m runners.water_station_both --db <db> --reset` |
+
 ### run.sh commands
 
 ```bash
@@ -177,7 +193,9 @@ The framework will:
 # Run ETL — single day, one DB
 ./run.sh run-station   <db>             # water_station table
 ./run.sh run-monitor   <db>             # water_station_monitor table
-./run.sh run-all       <db>             # both tables on one DB
+./run.sh run-all       <db>             # both tables, TWO connections (open/close per table)
+./run.sh run-both      <db>             # both tables, ONE connection (recommended for Hive)
+./run.sh reset-both    <db>             # truncate + load both tables on ONE connection
 
 # Run ETL — multiple days, one DB
 ./run.sh run-station-loop  <db> <days>  # e.g. 10 days
@@ -290,6 +308,28 @@ The 4th argument is a space-separated list of databases to skip.
 | `<db>` | `run-station`, `run-monitor`, `run-all`, `reset-*` | `postgresql` |
 | `<days>` | `*-loop` commands | `10` |
 | `<exclude>` | `run-all-db`, `run-all-db-loop` | `"postgresql oracle"` |
+
+### Hive notes (important)
+
+Hive is a batch engine, not OLTP — INSERT/DELETE are slow and have extra setup.
+
+- **Use `run-both`, not `run-all`.** `run-all` opens/closes a connection per
+  table; on ACID tables that leaves locks behind and the next connection waits
+  up to `hive.txn.timeout` (default **5 min**). `run-both` uses one connection.
+- **Execution engine** — set `HIVE_EXECUTION_ENGINE` in `.env`:
+  - The query engine must be **installed on the cluster**. Setting `tez`/`spark`
+    when it is not installed fails with `NoClassDefFoundError`
+    (e.g. `org/apache/tez/runtime/api/Event`).
+  - If the cluster default is a broken engine, **force `mr`** to override it:
+    `HIVE_EXECUTION_ENGINE=mr` (MapReduce — slower, but works).
+- **Fast bulk load** needs WebHDFS configured (`WEBHDFS_HOST`, `WEBHDFS_PORT`,
+  `WEBHDFS_USER`, `WEBHDFS_STAGING_DIR`). Without it, the adapter falls back to
+  multi-row INSERT (slower). See `.env.example`.
+
+```bash
+# Recommended for Hive (one connection, both tables)
+HIVE_EXECUTION_ENGINE=mr bash run.sh run-both hive
+```
 
 ---
 
@@ -410,7 +450,7 @@ Each adapter tries the fastest method available and falls back automatically:
 |---|---|---|---|
 | PostgreSQL | `COPY FROM STDIN` | `execute_values()` | batch insert |
 | Impala | Parquet + `LOAD DATA` | batch insert | — |
-| Hive | `LOAD DATA LOCAL INPATH` | batch insert | — |
+| Hive | WebHDFS upload → `LOAD DATA INPATH` (via staging table) | multi-row INSERT | — |
 | MySQL | `LOAD DATA LOCAL INFILE` | `executemany()` | batch insert |
 | Oracle | `executemany()` + arraysize | batch insert | — |
 | MSSQL | `fast_executemany` | batch insert | — |
