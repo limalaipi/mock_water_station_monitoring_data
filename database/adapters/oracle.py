@@ -44,6 +44,14 @@ class OracleAdapter(BaseAdapter):
             return False
 
     def connect(self) -> "OracleAdapter":
+        # oracledb pulls in `cryptography`, which warns that Python 3.8 is
+        # deprecated. We intentionally pin 3.8 (CPU lacks x86-64-v2 for newer
+        # numpy), so silence just that one message — not warnings in general.
+        import warnings
+        warnings.filterwarnings(
+            "ignore",
+            message=r".*Python 3\.8 is no longer supported.*",
+        )
         import oracledb
         dsn = oracledb.makedsn(
             host         = self.config.get("host"),
