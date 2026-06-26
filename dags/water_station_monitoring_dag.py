@@ -25,7 +25,9 @@ with DAG(
     for db in DATABASES:
         BashOperator(
             task_id=f"{db}_etl",
+            # Invoke via `bash run.sh` (not `./run.sh`) so it works even when
+            # the deployed copy lost its execute bit — avoids "Permission denied".
             bash_command=(
-                f"cd {JOB_DIR} && ENV=airflow ./run.sh run-all {db}"
+                f"cd {JOB_DIR} && ENV=airflow bash run.sh run-all {db}"
             ),
         )
