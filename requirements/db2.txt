@@ -1,0 +1,3 @@
+-r base.txt
+ibm_db>=3.2
+ibm_db_sa>=0.3

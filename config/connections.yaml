@@ -1,0 +1,75 @@
+# ============================================================
+# Database Connection Profiles
+# Secrets are NOT stored here — they reference .env variables.
+# ============================================================
+
+databases:
+
+  postgresql:
+    driver: postgresql
+    host: ${POSTGRES_HOST}
+    port: ${POSTGRES_PORT}
+    database: ${POSTGRES_DB}
+    username: ${POSTGRES_USER}
+    password: ${POSTGRES_PASS}
+
+  impala:
+    driver: impala
+    host: ${IMPALA_HOST}
+    port: ${IMPALA_PORT}
+    database: ${IMPALA_DB}
+    username: ${IMPALA_USER}
+    use_ssl: false
+    schema: ${IMPALA_SCHEMA}        # Impala uses database name as schema (e.g. prom_dg)
+
+  hive:
+    driver: hive
+    host: ${HIVE_HOST}
+    port: ${HIVE_PORT}
+    database: ${HIVE_DB}
+    username: ${HIVE_USER}
+    auth: ${HIVE_AUTH}
+    schema: ${HIVE_SCHEMA}
+    webhdfs_host: ${WEBHDFS_HOST}
+    webhdfs_port: ${WEBHDFS_PORT}
+    webhdfs_user: ${WEBHDFS_USER}
+    webhdfs_staging: ${WEBHDFS_STAGING_DIR}
+    # kerberos_service_name: ${HIVE_KERBEROS_SERVICE_NAME}
+
+  mysql:
+    driver: mysql
+    host: ${MYSQL_HOST}
+    port: ${MYSQL_PORT}
+    database: ${MYSQL_DB}
+    username: ${MYSQL_USER}
+    password: ${MYSQL_PASS}
+    schema: ${MYSQL_DB}             # MySQL has no schema — uses database name directly
+
+  oracle:
+    driver: oracle
+    host: ${ORACLE_HOST}
+    port: ${ORACLE_PORT}
+    service_name: ${ORACLE_SERVICE_NAME}
+    username: ${ORACLE_USER}
+    password: ${ORACLE_PASS}
+    schema: ${ORACLE_USER}          # Oracle schema = username/owner
+
+  mssql:
+    driver: mssql
+    host: ${MSSQL_HOST}
+    port: ${MSSQL_PORT}
+    database: ${MSSQL_DB}
+    username: ${MSSQL_USER}
+    password: ${MSSQL_PASS}
+    schema: ${MSSQL_SCHEMA}         # MSSQL schema (usually dbo)
+    # driver_name: "ODBC Driver 18 for SQL Server"
+
+  db2:
+    driver: db2
+    host: ${DB2_HOST}
+    port: ${DB2_PORT}
+    database: ${DB2_DB}
+    username: ${DB2_USER}
+    password: ${DB2_PASS}
+    schema: ${DB2_SCHEMA}
+    jdbc_jar: ${DB2_JDBC_JAR}       # Path to db2jcc4.jar

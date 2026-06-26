@@ -1,0 +1,4 @@
+-r base.txt
+impyla>=0.19
+thrift>=0.16
+thrift-sasl>=0.4

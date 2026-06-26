@@ -1,0 +1,115 @@
+# ============================================================
+# Pipeline Scenario: Standard Water Station ETL
+# Corresponds to the original water_station.py runner.
+# ============================================================
+
+scenario: water_station
+
+# --- Pipeline execution settings ---
+pipeline:
+  rows_per_day: 100
+  max_days: 10
+  pattern_type: INCREASE   # INCREASE | DECREASE | RANDOM
+  increase_count: 3
+  decrease_count: 1
+  target_start_quality: 75
+  target_end_quality: 100
+
+# --- Target table ---
+# runner นี้ตรงกับ water_station.py (v3) → insert ลง water_station
+target:
+  schema: public
+  table: water_station
+
+# --- Domain validation rules ---
+data_quality:
+  valid_country_codes: ["TH"]
+  valid_province_codes: ["10"]
+  valid_amphoe_codes: ["1001", "1003"]
+  valid_tambon_codes: ["100101", "100108", "100301", "100106", "100307"]
+  wrong_data_markers: ["No", "Invalid"]
+
+# --- Per-column quality rules ---
+# strategy:        fixed | random
+# quality_check:   valid_percent | null_percent | null_placeholder_percent | distinct_percent | unique_percent
+# corruption_type: invalid_marker | null | placeholder | duplicate
+column_rules:
+
+  province_code:
+    strategy: fixed
+    quality_check: valid_percent
+    corruption_type: invalid_marker
+    fixed_targets: [85, 80, 75, 70, 65, 95, 95, 90, 75, 80]
+    is_skippable: false
+
+  officer_phone:
+    strategy: fixed
+    quality_check: null_percent
+    corruption_type: "null"
+    fixed_targets: [85, 80, 75, 70, 65, 95, 95, 90, 85, 80]
+    is_skippable: false
+
+  officer_email:
+    strategy: fixed
+    quality_check: null_placeholder_percent
+    corruption_type: placeholder
+    # NOTE: "" (empty string) ใช้ได้กับทุก DB ยกเว้น Oracle — Oracle เก็บ '' เป็น NULL จริง
+    # ดังนั้น pipeline จะกรอง "" ออกอัตโนมัติเมื่อ db_type == oracle (ดู StatefulWaterQualityPipeline).
+    placeholder_values: ["missing", "null", "n/a", "na", "none", "undefined", "empty", "-", ""]
+    fixed_targets: [85, 80, 75, 70, 65, 95, 95, 90, 85, 80]
+    is_skippable: false
+
+  officer_name:
+    strategy: fixed
+    quality_check: distinct_percent
+    corruption_type: duplicate
+    fixed_targets: [100, 95, 95, 95, 90, 100, 100, 100, 100, 100]
+    duplicate_pool_size: 3
+    is_skippable: false
+
+  station_url:
+    strategy: fixed
+    quality_check: unique_percent
+    corruption_type: duplicate
+    fixed_targets: [100, 95, 95, 95, 90, 100, 100, 100, 100, 100]
+    duplicate_pool_size: 5
+    is_skippable: false
+
+  country_code:
+    strategy: random
+    quality_check: valid_percent
+    corruption_type: invalid_marker
+    random_min: 70
+    random_max: 95
+    is_skippable: true
+
+  amphoe_code:
+    strategy: random
+    quality_check: valid_percent
+    corruption_type: invalid_marker
+    random_min: 75
+    random_max: 95
+    is_skippable: true
+
+  tambon_code:
+    strategy: random
+    quality_check: valid_percent
+    corruption_type: invalid_marker
+    random_min: 65
+    random_max: 100
+    is_skippable: true
+
+  insert_date:
+    strategy: random
+    quality_check: null_percent
+    corruption_type: "null"
+    random_min: 100
+    random_max: 100
+    skip_days: [3, 6]
+    is_skippable: true
+
+# --- Global skip days (all skippable columns are nulled on these days) ---
+global_skip_days: []
+
+# --- Required columns (never skipped, even on global skip days) ---
+required_columns: []

@@ -1,0 +1,2 @@
+-r base.txt
+oracledb>=1.4

@@ -1,0 +1,135 @@
+# ============================================================
+# Pipeline Scenario: Data Quality Degradation ETL
+# Target table  : water_station_monitor
+# Generator     : WaterMonitorRowGenerator
+# Source runner : water_station_monitor.py (v2)
+# ============================================================
+
+scenario: water_quality
+
+pipeline:
+  rows_per_day: 100
+  max_days: 10
+  pattern_type: INCREASE
+  increase_count: 3
+  decrease_count: 2
+  target_start_quality: 20
+  target_end_quality: 100
+
+target:
+  schema: public
+  table: water_station_monitor
+
+# --- Domain validation rules ---
+data_quality:
+  valid_country_codes: ["TH"]
+  valid_province_codes: ["10"]
+  valid_amphoe_codes: ["1001", "1003"]
+  valid_tambon_codes: ["100101", "100108", "100301", "100106", "100307"]
+  valid_department_id: ["6410001600", "6210700010"]
+  wrong_data_markers: ["No", "Invalid"]
+
+# --- Per-column quality rules ---
+# Columns match WaterMonitorRowGenerator output:
+#   monitor_id, station_id, station_url,
+#   tambon/amphoe/province/country_code,
+#   monitor_name, monitor_phone, monitor_email, monitor_id_card,
+#   department_id, insert_date, monitor_date,
+#   wqi, water_ph, water_do, water_bod, water_tds, water_temp, water_nh3_n
+
+column_rules:
+
+  monitor_id_card:
+    strategy: fixed
+    quality_check: valid_percent
+    corruption_type: invalid_marker
+    fixed_targets: [85, 80, 75, 70, 65, 95, 95, 90, 85, 80]
+    is_skippable: false
+
+  water_ph:
+    strategy: fixed
+    quality_check: null_percent       # numeric — NULL as invalid
+    corruption_type: "null"
+    fixed_targets: [85, 80, 75, 70, 65, 95, 95, 90, 85, 80]
+    is_skippable: false
+
+  water_do:
+    strategy: fixed
+    quality_check: null_percent       # numeric — NULL as invalid
+    corruption_type: "null"
+    fixed_targets: [85, 80, 75, 70, 65, 95, 95, 90, 85, 80]
+    is_skippable: false
+
+  station_url:
+    strategy: fixed
+    quality_check: valid_percent
+    corruption_type: invalid_marker
+    fixed_targets: [75, 80, 75, 70, 65, 95, 95, 90, 85, 80]
+    is_skippable: false
+
+  department_id:
+    strategy: fixed
+    quality_check: valid_percent
+    corruption_type: invalid_marker
+    fixed_targets: [75, 80, 75, 70, 65, 95, 95, 90, 85, 80]
+    is_skippable: false
+
+  province_code:
+    strategy: fixed
+    quality_check: valid_percent
+    corruption_type: invalid_marker
+    fixed_targets: [75, 80, 75, 70, 65, 95, 95, 90, 85, 80]
+    is_skippable: false
+
+  insert_date:
+    strategy: random
+    quality_check: null_percent
+    corruption_type: "null"
+    random_min: 100
+    random_max: 100
+    skip_days: [3, 4, 5]
+    is_skippable: true
+
+  monitor_date:
+    strategy: random
+    quality_check: null_percent
+    corruption_type: "null"
+    random_min: 100
+    random_max: 100
+    skip_days: [3, 4, 5]
+    is_skippable: true
+
+  country_code:
+    strategy: random
+    quality_check: valid_percent
+    corruption_type: invalid_marker
+    random_min: 70
+    random_max: 95
+    is_skippable: true
+
+  amphoe_code:
+    strategy: random
+    quality_check: valid_percent
+    corruption_type: invalid_marker
+    random_min: 75
+    random_max: 95
+    is_skippable: true
+
+  tambon_code:
+    strategy: random
+    quality_check: valid_percent
+    corruption_type: invalid_marker
+    random_min: 65
+    random_max: 100
+    is_skippable: true
+
+  wqi:
+    strategy: random
+    quality_check: null_percent       # numeric column — use NULL as invalid value
+    corruption_type: "null"
+    random_min: 85
+    random_max: 98
+    is_skippable: true
+
+global_skip_days: []
+required_columns: []

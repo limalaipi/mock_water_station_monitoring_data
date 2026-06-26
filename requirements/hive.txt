@@ -1,0 +1,4 @@
+-r base.txt
+pyhive[hive]>=0.7
+thrift>=0.16
+thrift-sasl>=0.4

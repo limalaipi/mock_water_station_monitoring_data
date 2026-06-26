@@ -1,0 +1,30 @@
+# --- Secrets / local config ---
+.env
+
+# --- Python ---
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# --- Virtual environment ---
+.venv/
+venv/
+
+# --- Generated pipeline output (recreated at runtime) ---
+/data/
+/station_data/
+
+# --- Runtime pipeline state (keep folder, ignore contents) ---
+state/*.json
+
+# --- JDBC drivers (large, redistributed separately) ---
+drivers/*.jar
+
+# --- OS / editor cruft ---
+.DS_Store
+Thumbs.db
+.idea/
+*.swp

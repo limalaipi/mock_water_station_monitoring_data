@@ -1,0 +1,190 @@
+# prom Automation Config
+# ================================
+# แก้ไขค่าเหล่านี้ก่อนรัน script
+# Secrets อยู่ใน .env — ไม่ commit ไฟล์นี้ลง git
+
+prom:
+  url: http://10.10.10.181:30080
+  username: ${PROM_USER}
+  password: ${PROM_PASS}
+  domain: "DE-DataQuality"
+
+run_ingestion_after_add: true
+
+semantic: &default_semantic
+  - type: "ตรวจสอบความเป็นปัจจุบัน"
+    column: "insert_date"
+  - type: "timeliness decay"
+    column: "insert_date"
+  - type: "de-dataquality-water-org-unit"
+    column: "department_id"
+  - type: "แปลงเลขบัตรประชาชน"
+    column: "monitor_id_card"
+  - type: "province_code"
+    column: "province_code"
+  - type: "url"
+    column: "station_url"
+  - type: "de-dataquality-water-good-oxygen"
+    column: "water_do"
+
+default_ingestion: &default_ingestion
+  tier: "Tier1"
+  include_stored_procedures: false
+  database_includes:
+    - "demo_dg_db"
+  schema_includes:
+    - "demo_dg_db"
+  table_includes:
+    - "water_station"
+    - "water_station_monitor"
+  semantic: *default_semantic
+
+default_filters: &default_filters
+  database_includes:
+    - "demo_dg_db"
+  schema_includes:
+    - "demo_dg_db"
+  table_includes:
+    - "water_station"
+    - "water_station_monitor"
+
+
+databases:
+
+  # postgresql:
+  #   enabled: true
+  #   service_name: de-dataquality-Postgres
+  #   description: "PostgreSQL data quality testing database"
+  #   host_port: "10.10.10.176:5432"
+  #   username: ${POSTGRES_USER}
+  #   password: ${POSTGRES_PASS}
+  #   database: ${POSTGRES_DB}
+  #   filters: *default_filters
+  #   ingestion: *default_ingestion
+
+  # impala:
+  #   enabled: true
+  #   service_name: de-dataquality-Impala
+  #   description: "Cloudera Impala data quality testing"
+  #   host_port: "10.10.10.200:21051"
+  #   username: ${IMPALA_USER}
+  #   database: ${IMPALA_SCHEMA}
+  #   auth_type: NO_AUTH
+  #   filters: *default_filters
+  #   ingestion: *default_ingestion
+
+  hive:
+    enabled: true
+    service_name: de-dataquality-hive
+    description: "Apache Hive data quality testing"
+    host_port: "10.10.10.200:10000"
+    username: ${HIVE_USER}
+    password: ${HIVE_PASS}
+    database: ${HIVE_SCHEMA}
+    schema: ${HIVE_SCHEMA}
+    auth: LDAP
+    metastore:
+      type: PostgresConnection
+      host_port: "10.10.10.200:5432"
+      username: ${HIVE_METASTORE_USER}
+      password: ${HIVE_METASTORE_PASS}
+      database: ${HIVE_METASTORE_DB}
+    filters: *default_filters
+    ingestion: *default_ingestion
+
+  mysql:
+    enabled: true
+    service_name: de-dataquality-mySQL
+    description: "MySQL data quality testing database"
+    host_port: "10.10.10.51:3306"
+    username: ${MYSQL_USER}
+    password: ${MYSQL_PASS}
+    database: ${MYSQL_DB}
+    filters: *default_filters
+    ingestion: *default_ingestion
+
+  oracle:
+    enabled: true
+    service_name: de-dataquality-oracle
+    description: "Oracle data quality testing database"
+    host_port: "10.10.10.51:1521"
+    username: ${ORACLE_USER}
+    password: ${ORACLE_PASS}
+    schema: ${ORACLE_SCHEMA}
+    service_name_db: ${ORACLE_SERVICE_NAME}
+    filters: 
+      database_includes:
+        - ${ORACLE_SERVICE_NAME}
+      schema_includes:
+        - ${ORACLE_SCHEMA}
+      table_includes:
+        - "water_station"
+        - "water_station_monitor"
+    ingestion: 
+      tier: "Tier1"
+      database_includes:
+        - ${ORACLE_SERVICE_NAME}
+      schema_includes:
+        - ${ORACLE_SCHEMA}
+      table_includes:
+        - "water_station"
+        - "water_station_monitor"
+      semantic: *default_semantic
+
+  mssql:
+    enabled: true
+    service_name: de-dataquality-mssql
+    description: "Microsoft SQL Server data quality testing"
+    host_port: "10.10.10.52:1433"
+    username: ${MSSQL_USER}
+    password: ${MSSQL_PASS}
+    database: ${MSSQL_DB}
+    filters: 
+      database_includes:
+        - ${MSSQL_DB}
+      schema_includes:
+        - ${MSSQL_SCHEMA}
+      table_includes:
+        - "water_station"
+        - "water_station_monitor"
+    ingestion:
+      tier: "Tier1"
+      include_stored_procedures: false
+      database_includes:
+        - ${MSSQL_DB}
+      schema_includes:
+        - ${MSSQL_SCHEMA}
+      table_includes:
+        - "water_station"
+        - "water_station_monitor"
+      semantic: *default_semantic
+
+
+  db2:
+    enabled: true
+    service_name: de-dataquality-db2
+    description: "IBM Db2 data quality testing database"
+    host_port: "10.10.10.51:50001"
+    username: ${DB2_USER}
+    password: ${DB2_PASS}
+    database: ${DB2_DB}
+    filters: 
+      database_includes:
+        - ${DB2_DB}
+      schema_includes:
+        - ${DB2_SCHEMA}
+      table_includes:
+        - "water_station"
+        - "water_station_monitor" 
+    ingestion:
+      tier: "Tier1"
+      include_stored_procedures: false
+      database_includes:
+        - ${DB2_DB}
+      schema_includes:
+        - ${DB2_SCHEMA}
+      table_includes:
+        - "water_station"
+        - "water_station_monitor"
+      semantic: *default_semantic
+      
