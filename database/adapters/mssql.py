@@ -73,6 +73,12 @@ class MSSQLAdapter(BaseAdapter):
     # ------------------------------------------------------------------
 
     def bulk_load(self, df: pd.DataFrame, schema: str, table: str) -> int:
+        # MSSQL keeps '' as an empty string (unlike Oracle, which stores '' as
+        # NULL). Convert empty-string placeholders to NULL up front so both the
+        # fast path and the _batch_insert fallback land real NULLs — keeping
+        # null_percent accurate.
+        df = df.replace("", None)
+
         # 1. fast_executemany (cursor.fast_executemany = True set on connect)
         try:
             cols         = list(df.columns)
