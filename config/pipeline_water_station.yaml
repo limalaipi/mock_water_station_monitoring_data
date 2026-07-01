@@ -53,9 +53,8 @@ column_rules:
     strategy: fixed
     quality_check: null_placeholder_percent
     corruption_type: placeholder
-    # NOTE: "" (empty string) ใช้ได้กับทุก DB ยกเว้น Oracle — Oracle เก็บ '' เป็น NULL จริง
-    # ดังนั้น pipeline จะกรอง "" ออกอัตโนมัติเมื่อ db_type == oracle (ดู StatefulWaterQualityPipeline).
-    placeholder_values: ["missing", "null", "n/a", "na", "none", "undefined", "empty", "-", ""]
+    # token กลางที่ metric null_placeholder_percent นับตรงกันทุก DB ('-' ตัดออกเพราะ db2 ไม่มี)
+    placeholder_values: ["null", "undefined", "missing", "nan", "none", "na", "n/a", "empty", "#n/d", "blank", '""']
     fixed_targets: [85, 80, 75, 70, 65, 95, 95, 90, 85, 80]
     is_skippable: false
 

@@ -226,9 +226,13 @@ class HiveAdapter(BaseAdapter):
         hdfs_path = f"{staging}/{filename}"
         webhdfs_base = f"http://{host}:{port}/webhdfs/v1"
 
-        # 1. Convert DataFrame to CSV bytes (no header, NULL as empty string)
+        # 1. Convert DataFrame to CSV bytes (no header). \N is LazySimpleSerDe's
+        #    NULL sentinel: na_rep="\\N" (not "") makes NaN/None land as real
+        #    NULLs in the STRING staging table — so null_percent stays accurate
+        #    even for STRING target columns — while genuine empty-string
+        #    placeholders ('') stay as '' for null_placeholder_percent.
         buf = io.StringIO()
-        df.to_csv(buf, index=False, header=False, na_rep="")
+        df.to_csv(buf, index=False, header=False, na_rep="\\N")
         csv_bytes = buf.getvalue().encode("utf-8")
 
         # 2. Ensure staging directory exists

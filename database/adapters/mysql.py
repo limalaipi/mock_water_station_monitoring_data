@@ -73,7 +73,11 @@ class MySQLAdapter(BaseAdapter):
             with tempfile.NamedTemporaryFile(
                 mode="w", suffix=".csv", delete=False, encoding="utf-8"
             ) as f:
-                df.to_csv(f, index=False, header=False, na_rep="")
+                # \N is MySQL's NULL sentinel for LOAD DATA. Using na_rep="\\N"
+                # (not "") makes NaN/None land as real NULLs — keeping
+                # null_percent accurate — while genuine empty-string placeholders
+                # ('') stay as '' for null_placeholder_percent.
+                df.to_csv(f, index=False, header=False, na_rep="\\N")
                 tmp_path = f.name
 
             # Escape backslashes in path for Windows
